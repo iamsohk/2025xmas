@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025 冬季日本親子自駕遊</title>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans HK', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Message Bubbles */
+        .msg-bubble { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 0.9rem; line-height: 1.5; }
+        .msg-user { background: #3b82f6; color: white; border-bottom-right-radius: 4px; align-self: flex-end; margin-left: auto; }
+        .msg-ai { background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; align-self: flex-start; margin-right: auto; border: 1px solid #334155; }
+        
+        /* Typing Indicator */
+        .typing-dot { width: 6px; height: 6px; background: #94a3b8; border-radius: 50%; display: inline-block; animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Gemini API Configuration
+        const apiKey = ""; // API key injected by environment
+        
+        // 內置 Icon 組件庫 (解決 CDN 相容性問題)
+        const Icons = {
+            Calendar: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+            ),
+            MapPin: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            ),
+            CheckSquare: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            ),
+            Car: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+            ),
+            Snowflake: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>
+            ),
+            Hotel: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
+            ),
+            Navigation: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            ),
+            Clock: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ),
+            Sun: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            ),
+            List: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+            ),
+            ExternalLink: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+            ),
+            Heart: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            ),
+            Sparkles: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></svg>
+            ),
+            Send: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            ),
+            Bot: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+            ),
+            Plus: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            ),
+            Trash2: ({size, className}) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+            )
+        };
+
+        // 數據資料庫
+        const tripData = {
+            startDate: "2025-12-20T15:30:00",
+            car: "Toyota Corolla Cross HEV (4WD)",
+            locations: [
+                { id: 1, type: "car", name: "取車: Toyota 成田站前店", desc: "JR成田站東口，非機場店", link: "https://www.google.com/maps/search/?api=1&query=Toyota+Rent+a+Car+Narita+Station&query_place_id=ChIJZSpeV22LImARMWkKB-JgvP4" },
+                { id: 2, type: "shop", name: "Workman Plus 成田美郷台店", desc: "必買雪靴/防風褸 (替代已結業店)", link: "https://www.google.com/maps/search/?api=1&query=Workman+Plus+Narita+Misatodai&query_place_id=ChIJGYYh7viKImARYJ_1IOXF_Ek" },
+                { id: 3, type: "hotel", name: "Day 1: 相鐵 Fresa Inn 鎌倉", desc: "大船站笠間口，步行1分鐘", link: "https://www.google.com/maps/search/?api=1&query=Sotetsu+Fresa+Inn+Kamakura+Ofuna+Kasamaguchi&query_place_id=ChIJSe4p4F1FGGARLTmCb3kiXxM" },
+                { id: 4, type: "hotel", name: "Day 2-3: THE TOKI 河口湖", desc: "富士山景，自駕方便", link: "https://www.google.com/maps/search/?api=1&query=THE+TOKI+Fujikawaguchiko&query_place_id=ChIJi-91AD5hGWARYXZndFFyktA" },
+                { id: 5, type: "hotel", name: "Day 4-6: ANA Holiday Inn 北輕井澤", desc: "山區路滑，必須雪胎", link: "https://www.google.com/maps/search/?api=1&query=ANA+Holiday+Inn+Resort+Karuizawa&query_place_id=ChIJu_cmDo3bHWARPE8J_-jiTjw" },
+                { id: 6, type: "hotel", name: "Day 7-8: 東京灣潮見王子", desc: "近東京站/豐洲，有大浴場", link: "https://www.google.com/maps/search/?api=1&query=Tokyo+Bay+Shiomi+Prince+Hotel&query_place_id=ChIJIw2ZGyyJGGAR3Wa5_nCeBuM" },
+                { id: 7, type: "car", name: "還車: Toyota 成田機場店", desc: "成田市取香530-13", link: "https://www.google.com/maps/search/?api=1&query=Toyota+Rent+a+Car+Narita+Airport&query_place_id=ChIJrzDaPXzzImARWWX91VYWI1w" }
+            ],
+            itinerary: [
+                { day: "Day 1", date: "12/20 (六)", title: "落地取車 & 裝備", details: ["15:30 抵達成田 (UO870)", "17:00 JR成田站取車 (Corolla Cross)", "17:30 Workman Plus 買雪靴", "20:00 鎌倉 Check-in"] },
+                { day: "Day 2", date: "12/21 (日)", title: "鎌倉熱血 -> 富士山", details: ["09:00 鎌倉高校前打卡", "12:00 鶴岡八幡宮午餐", "14:30 開車往河口湖 (2小時)", "17:00 Toki Check-in 浸溫泉"] },
+                { day: "Day 3", date: "12/22 (一)", title: "富士山慢活", details: ["上午: 大石公園逆富士", "下午: 忍野八海/纜車", "晚餐: 餺飥麵 Houtou"] },
+                { day: "Day 4", date: "12/23 (二)", title: "北上輕井澤 (雪地)", details: ["10:00 Check-out 長途駕駛", "15:00 白絲瀑布", "16:00 ANA Holiday Inn (小心路滑)"] },
+                { day: "Day 5", date: "12/24 (三)", title: "平安夜玩雪", details: ["全日: Snow Park 玩雪兜", "晚餐: 酒店自助餐 (需預約)"] },
+                { day: "Day 6", date: "12/25 (四)", title: "聖誕 Outlet", details: ["上午: 星野 Kera-Ike 溜冰", "下午: 輕井澤 Outlet", "晚上: 小心夜間山路"] },
+                { day: "Day 7", date: "12/26 (五)", title: "回東京", details: ["10:00 回程東京 (3小時)", "14:00 潮見王子 Check-in", "下午: 東京站/銀座"] },
+                { day: "Day 8", date: "12/27 (六)", title: "豐洲 & Shibuya Sky", details: ["上午: 豐洲千客萬來", "下午: SHIBUYA SKY (需預約)", "晚餐: 買和牛返房嘆"] },
+                { day: "Day 9", date: "12/28 (日)", title: "回程還車", details: ["11:00 Check-out", "12:00 酒酒井 Outlet", "15:30 機場店還車", "17:00 機場 Check-in"] }
+            ],
+            defaultTodos: [
+                { id: "t1", text: "Email 確認 Toyota 雪胎 (Studless)", done: false },
+                { id: "t2", text: "確認 Toyota ETC 卡", done: false },
+                { id: "t3", text: "預約 Day 5 平安夜自助餐", done: false },
+                { id: "t4", text: "購買 Day 8 Shibuya Sky 門票", done: false },
+                { id: "t5", text: "購買旅遊保險 (包自駕墊底)", done: false },
+                { id: "t6", text: "Download 離線地圖", done: false },
+                { id: "t7", text: "設定 Visit Japan Web", done: false }
+            ]
+        };
+
+        const Icon = ({ name, size = 20, className }) => {
+            const SpecificIcon = Icons[name];
+            if (!SpecificIcon) return null;
+            return <SpecificIcon size={size} className={className} />;
+        };
+
+        // 元件: 倒數計時器
+        const Countdown = () => {
+            const [daysLeft, setDaysLeft] = useState(0);
+
+            useEffect(() => {
+                const target = new Date(tripData.startDate).getTime();
+                const now = new Date().getTime();
+                const diff = target - now;
+                setDaysLeft(Math.ceil(diff / (1000 * 60 * 60 * 24)));
+            }, []);
+
+            return (
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 mb-6 shadow-lg transform hover:scale-[1.01] transition-all">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-blue-100 text-sm font-medium mb-1">距離出發仲有</p>
+                            <h2 className="text-4xl font-bold text-white">{daysLeft > 0 ? daysLeft : 0}<span className="text-lg ml-2 font-normal">日</span></h2>
+                        </div>
+                        <div className="text-right">
+                            <div className="flex items-center text-blue-100 mb-1 justify-end">
+                                <Icon name="Car" size={16} className="mr-1" />
+                                <span className="text-xs">Corolla Cross</span>
+                            </div>
+                            <div className="flex items-center text-blue-100 justify-end">
+                                <Icon name="Snowflake" size={16} className="mr-1" />
+                                <span className="text-xs">雪胎確認中</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 元件: 導航按鈕
+        const NavButton = ({ active, label, icon, onClick }) => (
+            <button 
+                onClick={onClick}
+                className={`flex flex-col items-center justify-center w-full py-3 transition-colors ${active ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+                <Icon name={icon} size={24} className={`mb-1 ${icon === 'Sparkles' ? 'text-yellow-400' : ''}`} />
+                <span className="text-[10px] font-medium">{label}</span>
+            </button>
+        );
+
+        // Gemini Service
+        const callGemini = async (prompt, history = []) => {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const systemPrompt = `
+                You are a helpful travel assistant for a family trip to Japan in Winter 2025. 
+                You have access to the following trip data: ${JSON.stringify(tripData)}.
+                Answer questions based on this itinerary. 
+                - Be concise and friendly.
+                - Use Traditional Chinese (Cantonese/Hong Kong style) if the user asks in Chinese.
+                - Use plenty of emojis.
+                - If asked about food/weather, give suggestions relevant to the specific location in the itinerary for that day.
+                - If asked for translations, provide the Japanese text and phonetic reading.
+            `;
+
+            // Construct payload with history
+            const contents = [
+                { role: "user", parts: [{ text: systemPrompt }] },
+                ...history.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.text }]
+                })),
+                { role: "user", parts: [{ text: prompt }] }
+            ];
+
+            const payload = {
+                contents: contents,
+                generationConfig: {
+                    maxOutputTokens: 500,
+                    temperature: 0.7
+                }
+            };
+
+            const maxRetries = 3;
+            let attempt = 0;
+            
+            while (attempt < maxRetries) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (error) {
+                    attempt++;
+                    if (attempt === maxRetries) throw error;
+                    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+                }
+            }
+        };
+
+        // 元件: AI 導遊
+        const AIAssistant = () => {
+            const [messages, setMessages] = useState([
+                { id: 1, role: 'ai', text: 'Hello! 👋 我係你嘅 AI 智能導遊。關於今次日本 Trip 有咩想問？我可以幫你 Check 行程、翻譯日文或者搵好嘢食！✨' }
+            ]);
+            const [input, setInput] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const scrollRef = useRef(null);
+
+            useEffect(() => {
+                if (scrollRef.current) {
+                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                }
+            }, [messages]);
+
+            const handleSend = async (text = input) => {
+                if (!text.trim() || isLoading) return;
+
+                const userMsg = { id: Date.now(), role: 'user', text: text };
+                setMessages(prev => [...prev, userMsg]);
+                setInput('');
+                setIsLoading(true);
+
+                try {
+                    const history = messages.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', text: m.text }));
+                    const aiResponseText = await callGemini(text, history);
+                    const aiMsg = { id: Date.now() + 1, role: 'ai', text: aiResponseText };
+                    setMessages(prev => [...prev, aiMsg]);
+                } catch (error) {
+                    setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: 'Oops! 網絡有啲繁忙，試多次？😓' }]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const suggestions = [
+                "✨ Day 3 有咩好食?",
+                "✨ 翻譯 '唔該俾杯水我' 做日文",
+                "✨ 輕井澤冬天要點著?",
+                "✨ Day 8 行程係點?"
+            ];
+
+            return (
+                <div className="flex flex-col h-[calc(100vh-140px)] animate-fade-in">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar" ref={scrollRef}>
+                        {messages.map((msg) => (
+                            <div key={msg.id} className={`flex w-full`}>
+                                <div className={`msg-bubble ${msg.role === 'user' ? 'msg-user' : 'msg-ai'}`}>
+                                    {msg.text}
+                                </div>
+                            </div>
+                        ))}
+                        {isLoading && (
+                            <div className="flex w-full">
+                                <div className="msg-bubble msg-ai flex items-center space-x-1">
+                                    <span className="typing-dot"></span>
+                                    <span className="typing-dot"></span>
+                                    <span className="typing-dot"></span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Suggestions */}
+                    {messages.length < 3 && (
+                        <div className="px-4 py-2 flex gap-2 overflow-x-auto hide-scrollbar">
+                            {suggestions.map((s, i) => (
+                                <button 
+                                    key={i} 
+                                    onClick={() => handleSend(s.replace('✨ ', ''))}
+                                    className="bg-slate-800 border border-slate-700 rounded-full px-3 py-1 text-xs text-blue-300 whitespace-nowrap hover:bg-slate-700 active:bg-slate-600 transition-colors"
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Input Area */}
+                    <div className="p-4 bg-slate-900/50 backdrop-blur border-t border-slate-800">
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                placeholder="問下 AI 導遊..."
+                                className="flex-1 bg-slate-800 text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-700"
+                            />
+                            <button 
+                                onClick={() => handleSend()}
+                                disabled={isLoading || !input.trim()}
+                                className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-500 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Icon name="Send" size={18} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 主程式
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [todos, setTodos] = useState(() => {
+                const saved = localStorage.getItem('japanTripTodos');
+                return saved ? JSON.parse(saved) : tripData.defaultTodos;
+            });
+            const [newTodo, setNewTodo] = useState('');
+
+            useEffect(() => {
+                localStorage.setItem('japanTripTodos', JSON.stringify(todos));
+            }, [todos]);
+
+            const toggleTodo = (id) => {
+                setTodos(todos.map(t => t.id === id ? { ...t, done: !t.done } : t));
+            };
+            
+            const addTodo = () => {
+                if (!newTodo.trim()) return;
+                const newItem = {
+                    id: Date.now(),
+                    text: newTodo.trim(),
+                    done: false
+                };
+                setTodos([...todos, newItem]);
+                setNewTodo('');
+            };
+
+            const deleteTodo = (id) => {
+                if(confirm("確定刪除呢個項目？")) {
+                    setTodos(todos.filter(t => t.id !== id));
+                }
+            };
+
+            const resetTodos = () => {
+                if(confirm("確定重置所有待辦事項？自訂項目將會消失。")) {
+                    setTodos(tripData.defaultTodos);
+                }
+            };
+
+            const renderContent = () => {
+                switch(activeTab) {
+                    case 'dashboard':
+                        return (
+                            <div className="space-y-4 animate-fade-in">
+                                <Countdown />
+                                
+                                <div className="glass-panel rounded-2xl p-5">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-bold text-lg flex items-center">
+                                            <Icon name="Calendar" className="mr-2 text-blue-400" /> 
+                                            重點行程
+                                        </h3>
+                                        <span className="text-xs text-slate-400">2025/12</span>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {tripData.itinerary.slice(0, 3).map((item, idx) => (
+                                            <div key={idx} className="flex border-l-2 border-slate-600 pl-3 py-1">
+                                                <div className="w-16 text-xs text-slate-400 pt-1">{item.date}</div>
+                                                <div>
+                                                    <div className="font-medium text-sm">{item.title}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button onClick={() => setActiveTab('itinerary')} className="w-full text-center text-xs text-blue-400 mt-2 py-2">
+                                            查看全部行程 &rarr;
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="glass-panel rounded-2xl p-5">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="font-bold text-lg flex items-center">
+                                            <Icon name="List" className="mr-2 text-green-400" /> 
+                                            準備進度
+                                        </h3>
+                                        <span className="text-xs font-mono bg-slate-700 px-2 py-1 rounded">
+                                            {todos.filter(t => t.done).length}/{todos.length}
+                                        </span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {todos.slice(0, 3).map(t => (
+                                            <div key={t.id} className="flex items-center space-x-3 text-sm text-slate-300">
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center ${t.done ? 'bg-green-500 border-green-500' : 'border-slate-500'}`}>
+                                                    {t.done && <Icon name="CheckSquare" size={12} className="text-white" />}
+                                                </div>
+                                                <span className={t.done ? "line-through text-slate-500" : ""}>{t.text}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    
+                    case 'ai':
+                        return (
+                            <div className="space-y-4 h-full">
+                                <div className="flex items-center justify-between px-1 mb-2">
+                                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                                        <Icon name="Sparkles" className="text-yellow-400" /> 
+                                        AI 智能導遊
+                                    </h2>
+                                    <span className="text-xs text-slate-400 border border-slate-700 px-2 py-1 rounded-full">Gemini Powered</span>
+                                </div>
+                                <div className="glass-panel rounded-2xl h-full overflow-hidden flex flex-col">
+                                    <AIAssistant />
+                                </div>
+                            </div>
+                        );
+
+                    case 'itinerary':
+                        return (
+                            <div className="space-y-4 pb-20 animate-fade-in">
+                                <h2 className="text-2xl font-bold mb-4 px-1">詳細行程</h2>
+                                {tripData.itinerary.map((day, idx) => (
+                                    <div key={idx} className="glass-panel rounded-xl p-4 border-l-4 border-blue-500">
+                                        <div className="flex justify-between items-baseline mb-2">
+                                            <h3 className="font-bold text-lg">{day.day}</h3>
+                                            <span className="text-sm text-slate-400">{day.date}</span>
+                                        </div>
+                                        <div className="text-blue-300 font-medium mb-3">{day.title}</div>
+                                        <ul className="space-y-2">
+                                            {day.details.map((detail, dIdx) => (
+                                                <li key={dIdx} className="text-sm text-slate-300 flex items-start">
+                                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500 mt-1.5 mr-2 flex-shrink-0"></span>
+                                                    {detail}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+
+                    case 'map':
+                        return (
+                            <div className="space-y-4 pb-20 animate-fade-in">
+                                <h2 className="text-2xl font-bold mb-4 px-1">導航傳送門</h2>
+                                <p className="text-xs text-slate-400 mb-4 px-1">點擊直接開啟 Google Maps</p>
+                                
+                                <div className="space-y-3">
+                                    {tripData.locations.map((loc) => (
+                                        <a 
+                                            key={loc.id}
+                                            href={loc.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block bg-slate-800 hover:bg-slate-700 active:bg-slate-600 transition-colors rounded-xl p-4 flex items-center justify-between group border border-slate-700"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <div className={`p-3 rounded-full ${
+                                                    loc.type === 'car' ? 'bg-blue-900/50 text-blue-400' : 
+                                                    loc.type === 'shop' ? 'bg-yellow-900/50 text-yellow-400' : 
+                                                    'bg-purple-900/50 text-purple-400'
+                                                }`}>
+                                                    {loc.type === 'car' && <Icon name="Car" size={20} />}
+                                                    {loc.type === 'shop' && <Icon name="Navigation" size={20} />}
+                                                    {loc.type === 'hotel' && <Icon name="Hotel" size={20} />}
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-sm text-white group-hover:text-blue-300 transition-colors">{loc.name}</div>
+                                                    <div className="text-xs text-slate-400 mt-0.5">{loc.desc}</div>
+                                                </div>
+                                            </div>
+                                            <Icon name="ExternalLink" size={16} className="text-slate-500" />
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    case 'todo':
+                        return (
+                            <div className="space-y-4 pb-20 animate-fade-in">
+                                <div className="flex justify-between items-center mb-4 px-1">
+                                    <h2 className="text-2xl font-bold">待辦事項</h2>
+                                    <button onClick={resetTodos} className="text-xs text-red-400 hover:text-red-300">重置 default</button>
+                                </div>
+
+                                {/* Add New Todo Input */}
+                                <div className="flex gap-2 mb-4">
+                                    <input 
+                                        type="text" 
+                                        value={newTodo} 
+                                        onChange={(e) => setNewTodo(e.target.value)}
+                                        placeholder="新增待辦事項..."
+                                        className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+                                    />
+                                    <button 
+                                        onClick={addTodo}
+                                        disabled={!newTodo.trim()}
+                                        className="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-500 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Icon name="Plus" size={20} />
+                                    </button>
+                                </div>
+                                
+                                <div className="glass-panel rounded-2xl overflow-hidden">
+                                    {todos.map((todo) => (
+                                        <div 
+                                            key={todo.id} 
+                                            onClick={() => toggleTodo(todo.id)}
+                                            className={`p-4 border-b border-slate-700/50 flex items-center cursor-pointer transition-all hover:bg-slate-800/50 group ${todo.done ? 'bg-slate-800/30' : ''}`}
+                                        >
+                                            <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center transition-colors flex-shrink-0 ${todo.done ? 'bg-blue-500 border-blue-500' : 'border-slate-500'}`}>
+                                                {todo.done && <Icon name="CheckSquare" size={14} className="text-white" />}
+                                            </div>
+                                            <span className={`flex-1 ${todo.done ? 'text-slate-500 line-through' : 'text-slate-100'}`}>
+                                                {todo.text}
+                                            </span>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); deleteTodo(todo.id); }}
+                                                className="p-2 text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                                                title="刪除"
+                                            >
+                                                <Icon name="Trash2" size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="p-4 text-center text-xs text-slate-500">
+                                    資料會自動儲存於此瀏覽器
+                                </div>
+                            </div>
+                        );
+                    default:
+                        return null;
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-900 text-slate-100 pb-20 max-w-md mx-auto relative shadow-2xl overflow-hidden">
+                    {/* 背景裝飾 */}
+                    <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-blue-900/20 to-transparent pointer-events-none"></div>
+                    
+                    {/* 頂部 Header */}
+                    <div className="sticky top-0 z-10 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex justify-between items-center">
+                        <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                            2025 Japan Trip
+                        </h1>
+                        <div className="flex items-center space-x-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            <span className="text-xs text-slate-400">Ready</span>
+                        </div>
+                    </div>
+
+                    {/* 主要內容區 */}
+                    <div className="p-6">
+                        {renderContent()}
+                    </div>
+
+                    {/* 底部導航欄 */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800 max-w-md mx-auto">
+                        <div className="flex justify-around items-center px-2">
+                            <NavButton active={activeTab === 'dashboard'} label="概覽" icon="Sun" onClick={() => setActiveTab('dashboard')} />
+                            <NavButton active={activeTab === 'itinerary'} label="行程" icon="Calendar" onClick={() => setActiveTab('itinerary')} />
+                            
+                            {/* AI 導遊按鈕 (Highlight) */}
+                            <NavButton active={activeTab === 'ai'} label="AI 導遊" icon="Sparkles" onClick={() => setActiveTab('ai')} />
+                            
+                            <NavButton active={activeTab === 'map'} label="地圖" icon="MapPin" onClick={() => setActiveTab('map')} />
+                            <NavButton active={activeTab === 'todo'} label="待辦" icon="CheckSquare" onClick={() => setActiveTab('todo')} />
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
